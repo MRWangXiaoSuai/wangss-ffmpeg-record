@@ -2415,19 +2415,19 @@ static int handle_metadata(RTMPContext *rt, RTMPPacket *pkt)
     ts = pkt->timestamp;
 
     while (next - pkt->data < pkt->size - RTMP_HEADER) {
-        type = bytestream_get_byte(&next);
-        size = bytestream_get_be24(&next);
-        cts  = bytestream_get_be24(&next);
-        cts |= bytestream_get_byte(&next) << 24;
+        type = bytestream_get_byte(&next); //@wss add:读取类型
+        size = bytestream_get_be24(&next); //@wss add:读取size
+        cts  = bytestream_get_be24(&next); //@wss add:读取时间戳，3字节
+        cts |= bytestream_get_byte(&next) << 24; //@wss add:紧跟着的1byte也是时间戳
         if (!pts)
             pts = cts;
         ts += cts - pts;
         pts = cts;
         if (size + 3 + 4 > pkt->data + pkt->size - next)
             break;
-        bytestream_put_byte(&p, type);
-        bytestream_put_be24(&p, size);
-        bytestream_put_be24(&p, ts);
+        bytestream_put_byte(&p, type); 
+        bytestream_put_be24(&p, size); 
+        bytestream_put_be24(&p, ts); 
         bytestream_put_byte(&p, ts >> 24);
         memcpy(p, next, size + 3 + 4);
         p    += size + 3;
