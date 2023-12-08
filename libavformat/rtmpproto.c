@@ -2298,7 +2298,7 @@ static int handle_notify(URLContext *s, RTMPPacket *pkt)
                            &stringlen))
         return AVERROR_INVALIDDATA;
 
-    if (!strcmp(commandbuffer, "onMetaData")) { //@wss add:onMetaData通知
+    if (!strcmp(commandbuffer, "onMetaData")) { //@wss add:onMetaData通知 通知服务端推流端对音视频处理的一些参数
         // metadata properties should be stored in a mixed array
         if (bytestream2_get_byte(&gbc) == AMF_DATA_TYPE_MIXEDARRAY) { //@wss add:onMeataData字符串后面跟着的是8
             // We have found a metaData Array so flv can determine the streams
@@ -2331,7 +2331,7 @@ static int handle_notify(URLContext *s, RTMPPacket *pkt)
     }
 
     // Skip the @setDataFrame string and validate it is a notification
-    if (!strcmp(commandbuffer, "@setDataFrame")) { //@wss add:如果是serDataFrame通知
+    if (!strcmp(commandbuffer, "@setDataFrame")) { //@wss add:如果是serDataFrame通知 该通知在上面的OnMetaData消息之前，正常接收流程是先收到SetDataFrame通知，紧跟着的是OnMetaData消息通知
         skip = gbc.buffer - pkt->data;
         ret = ff_amf_read_string(&gbc, statusmsg,
                                  sizeof(statusmsg), &stringlen);
@@ -2393,7 +2393,7 @@ static int rtmp_parse_result(URLContext *s, RTMPContext *rt, RTMPPacket *pkt)
     return 0;
 }
 
-static int handle_metadata(RTMPContext *rt, RTMPPacket *pkt)
+static int handle_metadata(RTMPContext *rt, RTMPPacket *pkt) //@wss add:metadata是sps，pps等用与解码的信息
 {
     int ret, old_flv_size, type;
     const uint8_t *next;
@@ -2414,11 +2414,11 @@ static int handle_metadata(RTMPContext *rt, RTMPPacket *pkt)
     /* copy data while rewriting timestamps */
     ts = pkt->timestamp;
 
-    while (next - pkt->data < pkt->size - RTMP_HEADER) {
-        type = bytestream_get_byte(&next); //@wss add:读取类型
+    while (next - pkt->data < pkt->size - RTMP_HEADER) { //@wss:flv header
+        type = bytestream_get_byte(&next); //@wss add:读取type
         size = bytestream_get_be24(&next); //@wss add:读取size
         cts  = bytestream_get_be24(&next); //@wss add:读取时间戳，3字节
-        cts |= bytestream_get_byte(&next) << 24; //@wss add:紧跟着的1byte也是时间戳
+        cts |= bytestream_get_byte(&next) << 24; //@wss add:扩展时间戳
         if (!pts)
             pts = cts;
         ts += cts - pts;
@@ -2429,7 +2429,7 @@ static int handle_metadata(RTMPContext *rt, RTMPPacket *pkt)
         bytestream_put_be24(&p, size); 
         bytestream_put_be24(&p, ts); 
         bytestream_put_byte(&p, ts >> 24);
-        memcpy(p, next, size + 3 + 4);
+        memcpy(p, next, size + 3 + 4); //@wss add:copy sps pps vps等信息
         p    += size + 3;
         bytestream_put_be32(&p, size + RTMP_HEADER);
         next += size + 3 + 4;
