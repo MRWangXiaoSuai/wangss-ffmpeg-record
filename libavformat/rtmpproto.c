@@ -2938,7 +2938,7 @@ fail:
     rtmp_close(s);
     return ret;
 }
-
+//@wss add:读取一个RTMP包，把数据copy到RTMPContext，然后调用get_packet函数解包
 static int rtmp_read(URLContext *s, uint8_t *buf, int size)
 {
     RTMPContext *rt = s->priv_data;
@@ -3011,7 +3011,7 @@ static int rtmp_write(URLContext *s, const uint8_t *buf, int size)
     int ret;
 
     do {
-        if (rt->skip_bytes) { //@wss add:跳过这部分字节数不copy
+        if (rt->skip_bytes) { //@wss add:跳过这部分数据
             int skip = FFMIN(rt->skip_bytes, size_temp);
             buf_temp       += skip;
             size_temp      -= skip;
@@ -3024,12 +3024,12 @@ static int rtmp_write(URLContext *s, const uint8_t *buf, int size)
             int channel = RTMP_AUDIO_CHANNEL;
 
             copy = FFMIN(RTMP_HEADER - rt->flv_header_bytes, size_temp);
-            bytestream_get_buffer(&buf_temp, rt->flv_header + rt->flv_header_bytes, copy);
+            bytestream_get_buffer(&buf_temp, rt->flv_header + rt->flv_header_bytes, copy); //@wss add:copy flv hdr
             rt->flv_header_bytes += copy;
             size_temp            -= copy;
             if (rt->flv_header_bytes < RTMP_HEADER)
                 break;
-
+            //@wss add:获取flv tag hdr信息
             pkttype = bytestream_get_byte(&header);
             pktsize = bytestream_get_be24(&header);
             ts = bytestream_get_be24(&header);
