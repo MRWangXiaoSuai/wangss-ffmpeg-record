@@ -2579,13 +2579,13 @@ static int inject_fake_duration_metadata(RTMPContext *rt)
 {
     // We need to insert the metadata packet directly after the FLV
     // header, i.e. we need to move all other already read data by the
-    // size of our fake metadata packet.
+    // size of our fake metadata packet. @wss add:要在数据开始插入metadata，已有数据都要后移
 
     uint8_t* p;
     // Keep old flv_data pointer
     uint8_t* old_flv_data = rt->flv_data;
     // Allocate a new flv_data pointer with enough space for the additional package
-    if (!(rt->flv_data = av_malloc(rt->flv_size + 55))) {
+    if (!(rt->flv_data = av_malloc(rt->flv_size + 55))) { //@wss add:分配新的内存，重新copy过去
         rt->flv_data = old_flv_data;
         return AVERROR(ENOMEM);
     }
@@ -2593,19 +2593,19 @@ static int inject_fake_duration_metadata(RTMPContext *rt)
     // Copy FLV header
     memcpy(rt->flv_data, old_flv_data, 13);
     // Copy remaining packets
-    memcpy(rt->flv_data + 13 + 55, old_flv_data + 13, rt->flv_size - 13);
+    memcpy(rt->flv_data + 13 + 55, old_flv_data + 13, rt->flv_size - 13); //@wss add:一个flv pkt只需要一个hdr，先copy flv hdr,紧跟着，copy 去掉hdr的数据，中间留有内存用于存放metadata
     // Increase the size by the injected packet
     rt->flv_size += 55;
     // Delete the old FLV data
     av_freep(&old_flv_data);
 
     p = rt->flv_data + 13;
-    bytestream_put_byte(&p, FLV_TAG_TYPE_META);
+    bytestream_put_byte(&p, FLV_TAG_TYPE_META); //@wss add:flv tag hdr
     bytestream_put_be24(&p, 40); // size of data part (sum of all parts below)
     bytestream_put_be24(&p, 0);  // timestamp
-    bytestream_put_be32(&p, 0);  // reserved
+    bytestream_put_be32(&p, 0);  // reserved @wss add:extend timestamp(1byte) + streamid(3bytes)
 
-    // first event name as a string
+    // first event name as a string @wss add:封装剩余属性信息
     bytestream_put_byte(&p, AMF_DATA_TYPE_STRING);
     // "onMetaData" as AMF string
     bytestream_put_be16(&p, 10);
@@ -2619,7 +2619,7 @@ static int inject_fake_duration_metadata(RTMPContext *rt)
     bytestream_put_be16(&p, 8);
     bytestream_put_buffer(&p, "duration", 8);
     bytestream_put_byte(&p, AMF_DATA_TYPE_NUMBER);
-    bytestream_put_be64(&p, av_double2int(rt->duration));
+    bytestream_put_be64(&p, av_double2int(rt->duration)); //@wss add:存入时长
 
     // Finalise object
     bytestream_put_be16(&p, 0); // Empty string
@@ -2867,12 +2867,12 @@ reconnect:
     }
 
     do {
-        ret = get_packet(s, 1);
+        ret = get_packet(s, 1); //@wss add:主函数，处理命令，通知，音视频数据，metadata等
     } while (ret == AVERROR(EAGAIN));
     if (ret < 0)
         goto fail;
 
-    if (rt->do_reconnect) {
+    if (rt->do_reconnect) { //@wss add:需要重连
         int i;
         ffurl_closep(&rt->stream);
         rt->do_reconnect = 0;
@@ -2884,13 +2884,13 @@ reconnect:
         goto reconnect;
     }
 
-    if (rt->is_input) {
+    if (rt->is_input) { //@wss add:注意执行条件
         // generate FLV header for demuxer
         rt->flv_size = 13;
         if ((ret = av_reallocp(&rt->flv_data, rt->flv_size)) < 0)
             goto fail;
         rt->flv_off  = 0;
-        memcpy(rt->flv_data, "FLV\1\0\0\0\0\011\0\0\0\0", rt->flv_size);
+        memcpy(rt->flv_data, "FLV\1\0\0\0\0\011\0\0\0\0", rt->flv_size); //@wss add:copy flv header
 
         // Read packets until we reach the first A/V packet or read metadata.
         // If there was a metadata package in front of the A/V packets, we can
@@ -2906,17 +2906,17 @@ reconnect:
         // first packet of an A/V stream, we have a better knowledge about the
         // streams, so set the FLV header accordingly.
         if (rt->has_audio) {
-            rt->flv_data[4] |= FLV_HEADER_FLAG_HASAUDIO;
+            rt->flv_data[4] |= FLV_HEADER_FLAG_HASAUDIO; //@wss add:flv header第5个字节 = 4表示有音频
         }
         if (rt->has_video) {
-            rt->flv_data[4] |= FLV_HEADER_FLAG_HASVIDEO;
+            rt->flv_data[4] |= FLV_HEADER_FLAG_HASVIDEO; //@wss add:flv header第5个字节 = 1表示有视频
         }
 
         // If we received the first packet of an A/V stream and no metadata but
         // the server returned a valid duration, create a fake metadata packet
         // to inform the FLV decoder about the duration.
-        if (!rt->received_metadata && rt->duration > 0) {
-            if ((ret = inject_fake_duration_metadata(rt)) < 0)
+        if (!rt->received_metadata && rt->duration > 0) { //@wss add:没收到metadata但是有一个有效范围的文件时长
+            if ((ret = inject_fake_duration_metadata(rt)) < 0) //@wss add:生成一个metadata存入文件时长
                 goto fail;
         }
     } else {
