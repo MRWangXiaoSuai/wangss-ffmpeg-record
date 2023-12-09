@@ -3019,7 +3019,7 @@ static int rtmp_write(URLContext *s, const uint8_t *buf, int size)
             continue;
         }
 
-        if (rt->flv_header_bytes < RTMP_HEADER) {
+        if (rt->flv_header_bytes < RTMP_HEADER) { //@home add:11bytes header
             const uint8_t *header = rt->flv_header;
             int channel = RTMP_AUDIO_CHANNEL;
 
