@@ -2414,7 +2414,7 @@ static int handle_metadata(RTMPContext *rt, RTMPPacket *pkt) //@wss add:metadata
     /* copy data while rewriting timestamps */
     ts = pkt->timestamp;
 
-    while (next - pkt->data < pkt->size - RTMP_HEADER) { //@wss:flv header
+    while (next - pkt->data < pkt->size - RTMP_HEADER) { //@wss:flv tag header
         type = bytestream_get_byte(&next); //@wss add:读取type
         size = bytestream_get_be24(&next); //@wss add:读取size
         cts  = bytestream_get_be24(&next); //@wss add:读取时间戳，3字节
@@ -2423,16 +2423,16 @@ static int handle_metadata(RTMPContext *rt, RTMPPacket *pkt) //@wss add:metadata
             pts = cts;
         ts += cts - pts;
         pts = cts;
-        if (size + 3 + 4 > pkt->data + pkt->size - next)
+        if (size + 3 + 4 > pkt->data + pkt->size - next) //@wss add:size + 3bytes(stream id) + 4bytes(previous tag size)
             break;
         bytestream_put_byte(&p, type); 
         bytestream_put_be24(&p, size); 
         bytestream_put_be24(&p, ts); 
         bytestream_put_byte(&p, ts >> 24);
-        memcpy(p, next, size + 3 + 4); //@wss add:copy sps pps vps等信息
+        memcpy(p, next, size + 3 + 4); //@wss add:copy flv data
         p    += size + 3;
-        bytestream_put_be32(&p, size + RTMP_HEADER);
-        next += size + 3 + 4;
+        bytestream_put_be32(&p, size + RTMP_HEADER); //@wss add:value previous tag size
+        next += size + 3 + 4; //@wss add:next tag
     }
     if (p != rt->flv_data + rt->flv_size) {
         av_log(rt, AV_LOG_WARNING, "Incomplete flv packets in "
@@ -3019,7 +3019,7 @@ static int rtmp_write(URLContext *s, const uint8_t *buf, int size)
             continue;
         }
 
-        if (rt->flv_header_bytes < RTMP_HEADER) { //@home add:11bytes header
+        if (rt->flv_header_bytes < RTMP_HEADER) { //@home add:11bytes header tag hdr
             const uint8_t *header = rt->flv_header;
             int channel = RTMP_AUDIO_CHANNEL;
 
