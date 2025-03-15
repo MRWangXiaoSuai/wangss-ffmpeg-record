@@ -106,7 +106,7 @@ static int init_context_defaults(AVCodecContext *s, const AVCodec *codec)
         flags= AV_OPT_FLAG_VIDEO_PARAM;
     else if(s->codec_type == AVMEDIA_TYPE_SUBTITLE)
         flags= AV_OPT_FLAG_SUBTITLE_PARAM;
-    av_opt_set_defaults2(s, flags, flags);
+    av_opt_set_defaults2(s, flags, flags); //@wss add:设置默认值
 
     av_channel_layout_uninit(&s->ch_layout);
 
@@ -153,7 +153,7 @@ AVCodecContext *avcodec_alloc_context3(const AVCodec *codec)
     if (!avctx)
         return NULL;
 
-    if (init_context_defaults(avctx, codec) < 0) {
+    if (init_context_defaults(avctx, codec) < 0) { //wss add:初始化AVCodecContext结构体
         av_free(avctx);
         return NULL;
     }

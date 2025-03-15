@@ -125,14 +125,14 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
         av_log(avctx, AV_LOG_ERROR, "No codec provided to avcodec_open2()\n");
         return AVERROR(EINVAL);
     }
-    if (codec && avctx->codec && codec != avctx->codec) { //@wss add:AVCodecContext.codec和codec指向同一块地址
+    if (codec && avctx->codec && codec != avctx->codec) { //@wss add:AVCodecContext.codec和codec指向同一块地址,在avcodec_alloc_context3完成初始化
         av_log(avctx, AV_LOG_ERROR, "This AVCodecContext was allocated for %s, "
                                     "but %s passed to avcodec_open2()\n", avctx->codec->name, codec->name);
         return AVERROR(EINVAL);
     }
     if (!codec)
         codec = avctx->codec; //@wss add:此处也可看出，codec和AVCodecContext.codec指向同一块地址
-    codec2 = ffcodec(codec);
+    codec2 = ffcodec(codec); //@wss add:获取FFCodec结构体 结构体空间直转
 
     if ((avctx->codec_type != AVMEDIA_TYPE_UNKNOWN && avctx->codec_type != codec->type) ||
         (avctx->codec_id   != AV_CODEC_ID_NONE     && avctx->codec_id   != codec->id)) {
@@ -152,7 +152,7 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
         ret = AVERROR(ENOMEM);
         goto end;
     }
-    avctx->internal = avci; //@wss add:AVCodecCOntext的internal参数管理avci，avci用来干啥的呢，且看后面
+    avctx->internal = avci; //@wss add:AVCodecContext的internal参数管理avci，avci用来干啥的呢，且看后面
 
     avci->buffer_frame = av_frame_alloc(); //@wss add:分配内存并初始化
     avci->buffer_pkt = av_packet_alloc();
@@ -181,7 +181,7 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
     if ((ret = av_opt_set_dict(avctx, options)) < 0) //@wss add:将输入的AVDictionary选项设置到AVCodecContext
         goto free_and_end;
 
-    if (avctx->codec_whitelist && av_match_list(codec->name, avctx->codec_whitelist, ',') <= 0) {
+    if (avctx->codec_whitelist && av_match_list(codec->name, avctx->codec_whitelist, ',') <= 0) { //@wss add:不匹配白名单
         av_log(avctx, AV_LOG_ERROR, "Codec (%s) not on whitelist \'%s\'\n", codec->name, avctx->codec_whitelist);
         ret = AVERROR(EINVAL);
         goto free_and_end;
