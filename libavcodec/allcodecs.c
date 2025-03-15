@@ -926,14 +926,14 @@ static const AVCodec *find_codec(enum AVCodecID id, int (*x)(const AVCodec *))
 
     id = remap_deprecated_codec_id(id); //@wss add:啥都没做
 
-    while ((p = av_codec_iterate(&i))) {
+    while ((p = av_codec_iterate(&i))) { //@wss add:遍历所有的编解码器
         if (!x(p))
             continue;
         if (p->id == id) {
-            if (p->capabilities & AV_CODEC_CAP_EXPERIMENTAL && !experimental) {
+            if (p->capabilities & AV_CODEC_CAP_EXPERIMENTAL && !experimental) { //wss add：虽然找到，但是是测试版本，所以继续找
                 experimental = p;
             } else
-                return p;
+                return p; //wss add:找到了
         }
     }
 
