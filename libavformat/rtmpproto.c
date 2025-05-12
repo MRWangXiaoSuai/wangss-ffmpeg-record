@@ -400,7 +400,7 @@ static int gen_connect(URLContext *s, RTMPContext *rt)
     ff_amf_write_field_name(&p, "tcUrl");
     ff_amf_write_string2(&p, rt->tcurl, rt->auth_params);
     if (rt->is_input) { //@wss add:推流
-        ff_amf_write_field_name(&p, "fpad");
+        ff_amf_write_field_name(&p, "fpad"); //@wss add:是否使用代理
         ff_amf_write_bool(&p, 0);
         ff_amf_write_field_name(&p, "capabilities");
         ff_amf_write_number(&p, 15.0);
@@ -412,17 +412,17 @@ static int gen_connect(URLContext *s, RTMPContext *rt)
         ff_amf_write_number(&p, 4071.0);
         ff_amf_write_field_name(&p, "videoCodecs");
         ff_amf_write_number(&p, 252.0);
-        ff_amf_write_field_name(&p, "videoFunction");
+        ff_amf_write_field_name(&p, "videoFunction"); //@MRWangXiaoSuai:: SUPPORT_VID_CLIENKT_SEEK
         ff_amf_write_number(&p, 1.0);
 
         if (rt->pageurl) {
-            ff_amf_write_field_name(&p, "pageUrl");
+            ff_amf_write_field_name(&p, "pageUrl"); //@wss add:url of the web page from where the swf file was loaded [http://host/sampletml]
             ff_amf_write_string(&p, rt->pageurl);
         }
     }
     ff_amf_write_object_end(&p);
-    //@wss add；到此为止，参数设置完成
-    if (rt->conn) { //@wss add:在connect message中添加任意的AMF数据 把一些额外的AMF数据写到RTMP body中
+    //@wss add；到此为止，key-pair参数设置完成
+    if (rt->conn) { //@wss add:在connect message中添加任意的AMF数据 把一些额外的AMF编码数据写到RTMP body中
         char *param = rt->conn;
 
         // Write arbitrary AMF data to the Connect message.
@@ -1266,7 +1266,7 @@ static int rtmp_handshake(URLContext *s, RTMPContext *rt)
 
     av_lfg_init(&rnd, 0xDEADC0DE);
     // generate handshake packet - 1536 bytes of pseudorandom data
-    for (i = 9; i <= RTMP_HANDSHAKE_PACKET_SIZE; i++) //@wss add:前面9个字节已填充完毕
+    for (i = 9; i <= RTMP_HANDSHAKE_PACKET_SIZE; i++) //@wss add:前面9个字节已填充完毕 c0 + 4 bytes version + 4 bytes time
         tosend[i] = av_lfg_get(&rnd) >> 24; //@wss add:对每个位置生成随机数，现在tosend中全是随机数，后续在分别针对key data(128bytes)和digest data(32bytes)单独处理
 
     if (CONFIG_FFRTMPCRYPT_PROTOCOL && rt->encrypted) { //@wss add:加密协议生成DH密钥保存在key，不加密key为随机数即可
