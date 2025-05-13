@@ -374,7 +374,7 @@ static inline int retry_transfer_wrapper(URLContext *h, uint8_t *buf,
     while (len < size_min) {
         if (ff_check_interrupt(&h->interrupt_callback))
             return AVERROR_EXIT;
-        ret = transfer_func(h, buf + len, size - len); //@wss add:调用协议自己的url_read函数读取数据
+        ret = transfer_func(h, buf + len, size - len); //@wss add:调用协议自己的url_read或者url_write函数读写数据
         if (ret == AVERROR(EINTR))
             continue;
         if (h->flags & AVIO_FLAG_NONBLOCK)
