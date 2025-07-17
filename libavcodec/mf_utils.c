@@ -563,16 +563,16 @@ int ff_instantiate_mf(void *log,
     IMFActivate *winner = 0;
     UINT32 flags;
 
-    ret = init_com_mf(log, f);
+    ret = init_com_mf(log, f); //初始化com对象，启动MF
     if (ret < 0)
         return ret;
 
     flags = MFT_ENUM_FLAG_SORTANDFILTER;
 
     if (use_hw) {
-        flags |= MFT_ENUM_FLAG_HARDWARE;
+        flags |= MFT_ENUM_FLAG_HARDWARE; //硬件编码
     } else {
-        flags |= MFT_ENUM_FLAG_SYNCMFT;
+        flags |= MFT_ENUM_FLAG_SYNCMFT; //软件编码
     }
 
     hr = f->MFTEnumEx(category, flags, in_type, out_type, &activate,

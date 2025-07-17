@@ -1047,7 +1047,7 @@ static int mf_init_encoder(AVCodecContext *avctx)
     MFContext *c = avctx->priv_data;
     HRESULT hr;
     int ret;
-    const CLSID *subtype = ff_codec_to_mf_subtype(avctx->codec_id);
+    const CLSID *subtype = ff_codec_to_mf_subtype(avctx->codec_id); //编码格式
     int use_hw = 0;
 
     c->frame = av_frame_alloc();
@@ -1059,20 +1059,20 @@ static int mf_init_encoder(AVCodecContext *avctx)
     c->reorder_delay = AV_NOPTS_VALUE;
 
     if (c->is_video && c->opt_enc_hw)
-        use_hw = 1;
+        use_hw = 1; //haraware
 
     if (!subtype)
         return AVERROR(ENOSYS);
 
     c->main_subtype = *subtype;
 
-    if ((ret = mf_create(avctx, &c->functions, &c->mft, avctx->codec, use_hw)) < 0)
+    if ((ret = mf_create(avctx, &c->functions, &c->mft, avctx->codec, use_hw)) < 0) //激活编码器
         return ret;
 
-    if ((ret = mf_unlock_async(avctx)) < 0)
+    if ((ret = mf_unlock_async(avctx)) < 0) //异步MFT编码器设置
         return ret;
 
-    hr = IMFTransform_QueryInterface(c->mft, &IID_ICodecAPI, (void **)&c->codec_api);
+    hr = IMFTransform_QueryInterface(c->mft, &IID_ICodecAPI, (void **)&c->codec_api); //查找codecapi接口
     if (!FAILED(hr))
         av_log(avctx, AV_LOG_VERBOSE, "MFT supports ICodecAPI.\n");
 
@@ -1209,7 +1209,7 @@ static int mf_close(AVCodecContext *avctx)
 static int mf_init(AVCodecContext *avctx)
 {
     int ret;
-    if ((ret = mf_load_library(avctx)) == 0) {
+    if ((ret = mf_load_library(avctx)) == 0) { //加载相关函数到avctx->func
            if ((ret = mf_init_encoder(avctx)) == 0) {
                 return 0;
         }
